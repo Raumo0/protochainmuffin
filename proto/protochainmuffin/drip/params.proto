@@ -1,0 +1,15 @@
+syntax = "proto3";
+package protochainmuffin.drip;
+
+import "amino/amino.proto";
+import "gogoproto/gogo.proto";
+
+option go_package = "protochainmuffin/x/drip/types";
+
+// Params defines the parameters for the module.
+message Params {
+  option (amino.name) = "protochainmuffin/x/drip/Params";
+  option (gogoproto.equal) = true;
+
+  
+}
