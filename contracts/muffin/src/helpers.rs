@@ -1,7 +1,6 @@
+use cosmwasm_std::{Addr, BalanceResponse, BankQuery, Coin, CosmosMsg, Deps, QueryRequest, StdResult, to_json_binary, WasmMsg};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
-use cosmwasm_std::{to_json_binary, Addr, CosmosMsg, StdResult, WasmMsg};
 
 use crate::msg::ExecuteMsg;
 
@@ -24,4 +23,12 @@ impl CwTemplateContract {
         }
         .into())
     }
+}
+
+pub fn query_balance(deps: Deps, address: String, denom: String) -> StdResult<Coin> {
+    let balance: BalanceResponse = deps.querier.query(&QueryRequest::Bank(BankQuery::Balance {
+        address,
+        denom,
+    }))?;
+    Ok(balance.amount)
 }
