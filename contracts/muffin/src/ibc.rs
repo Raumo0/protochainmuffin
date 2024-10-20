@@ -1,6 +1,5 @@
 use std::ops::Sub;
 use std::str::FromStr;
-
 use cosmwasm_std::{BankMsg, Binary, Coin, DepsMut, DistributionMsg, Env, from_json, IbcBasicResponse, IbcChannel, IbcChannelCloseMsg, IbcChannelConnectMsg, IbcChannelOpenMsg, IbcChannelOpenResponse, IbcOrder, IbcPacket, IbcPacketAckMsg, IbcPacketReceiveMsg, IbcPacketTimeoutMsg, IbcReceiveResponse, Reply, Response, StdError, SubMsg, SubMsgResult, Uint128};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
@@ -10,7 +9,7 @@ use crate::{ContractError, error::Never};
 use crate::ack::{Ack, make_ack_fail, make_ack_success};
 use crate::helpers::query_balance;
 use crate::msg::{ArithmeticTwapToNowResponse, CosmosResponse, CosmosResponsePacket, InterchainQueryPacketAck};
-use crate::state::{CHANNEL_INFO, ChannelInfo, CONTRACT_INFO, StateStatus, update_contract_status};
+use crate::state::{CHANNEL_INFO, ChannelInfo, CONTRACT_STATE, StateStatus, update_contract_status};
 
 pub const IBC_VERSION: &str = "icq-1";
 
@@ -143,19 +142,18 @@ fn on_packet_success(mut deps: DepsMut,
     let ack_data: InterchainQueryPacketAck = from_json(&result)?;
 
     let cosmos_response: CosmosResponsePacket = from_json(&ack_data.result)?;
-
     let query_responses: CosmosResponse = CosmosResponse::decode(cosmos_response.data.as_slice())?;
-
     let first_response = query_responses.responses.first().unwrap();
 
     let price_response: ArithmeticTwapToNowResponse = ArithmeticTwapToNowResponse::decode(first_response.value.as_slice())?;
+    let arithmetic_twap = Uint128::from_str(&price_response.arithmetic_twap).map_err(|_| ContractError::ParseError)?;
 
-    let contract_info = CONTRACT_INFO.load(deps.as_ref().storage)?;
+    let contract_info = CONTRACT_STATE.load(deps.as_ref().storage)?;
 
     let required_balance = calculate_required_balance(
         contract_info.fixed_amount,
+        arithmetic_twap,
         contract_info.contract_denom.to_string(),
-        price_response.arithmetic_twap
     )?;
 
     let contract_balance = query_balance(deps.as_ref(),
@@ -180,8 +178,8 @@ fn on_packet_success(mut deps: DepsMut,
       amount: vec![remain_balance]
     };
 
-    let send_coin_to_user_sub_msg = SubMsg::reply_on_success(send_tokens_to_contract_owner_msg, RECEIVE_ID);
-    let send_coin_to_community_sub_msg = SubMsg::reply_on_success(send_tokens_to_community_pool_msg, RECEIVE_ID);
+    let send_coin_to_user_sub_msg: SubMsg = SubMsg::reply_on_success(send_tokens_to_contract_owner_msg, RECEIVE_ID);
+    let send_coin_to_community_sub_msg: SubMsg = SubMsg::reply_on_success(send_tokens_to_community_pool_msg, RECEIVE_ID);
 
     Ok(IbcBasicResponse::new()
         .add_submessage(send_coin_to_user_sub_msg)
@@ -191,15 +189,21 @@ fn on_packet_success(mut deps: DepsMut,
     )
 }
 
-fn calculate_required_balance(fixed_amount: Coin,
-                              arithmetic_twap: String,
-                              contract_denom: String,
+fn calculate_required_balance(
+    fixed_amount: Coin,
+    arithmetic_twap: Uint128,
+    contract_denom: String,
 ) -> Result<Coin, ContractError> {
-    let twap_price = Uint128::from_str(&arithmetic_twap)?;
-    let required_amount_in_nano = fixed_amount.amount * twap_price;
+    // Perform the multiplication and check for overflow
+    let required_amount_in_nano = fixed_amount
+        .amount
+        .checked_mul(arithmetic_twap)?;
 
-    let required_amount = required_amount_in_nano / Uint128::new(1_000_000_000_000_000_000);
+    // Perform the division to adjust for the scale of twap_price (1_000_000_000_000_000_000)
+    let required_amount = required_amount_in_nano
+        .checked_div(Uint128::new(1_000_000_000_000_000_000))?;
 
+    // Create the resulting Coin with the calculated amount and specified denomination
     let required_token = Coin {
         amount: required_amount,
         denom: contract_denom,

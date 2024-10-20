@@ -7,8 +7,7 @@ use serde::{Deserialize, Serialize};
 #[cw_serde]
 pub struct InstantiateMsg {
     pub fixed_amount: Coin,
-    pub creator_address: String,
-    pub community_pool_address: String,
+    pub owner_address: String,
     pub contract_denom: String,
     pub twap_request_info: TwapSettings,
 }
@@ -29,8 +28,6 @@ pub enum ExecuteMsg {
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
     ContractInfo {},
-    OwnerBalance {},
-    CommunityPoolBalance {},
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]

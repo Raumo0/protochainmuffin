@@ -1,7 +1,7 @@
 use std::num::TryFromIntError;
 use std::string::FromUtf8Error;
 use std::time::SystemTimeError;
-use cosmwasm_std::StdError;
+use cosmwasm_std::{DivideByZeroError, OverflowError, StdError};
 use thiserror::Error;
 
 /// Never is a placeholder to ensure we don't return any errors
@@ -60,6 +60,11 @@ pub enum ContractError {
 
     #[error("invalid IBC channel version. Got ({actual}), expected ({expected})")]
     InvalidIbcVersion { actual: String, expected: String },
+
+    #[error("Failed to parse Uint128")]
+    ParseError,
+    #[error("Arithmetic error")]
+    ArithmeticError,
 }
 
 impl From<FromUtf8Error> for ContractError {
@@ -83,6 +88,18 @@ impl From<prost::DecodeError> for ContractError {
 impl From<TryFromIntError> for ContractError {
     fn from(_: TryFromIntError) -> Self {
         ContractError::AmountOverflow {}
+    }
+}
+
+impl From<OverflowError> for ContractError {
+    fn from(_: OverflowError) -> Self {
+        ContractError::ArithmeticError {}
+    }
+}
+
+impl From<DivideByZeroError> for ContractError {
+    fn from(_: DivideByZeroError) -> Self {
+        ContractError::ArithmeticError {}
     }
 }
 

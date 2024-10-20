@@ -8,7 +8,7 @@ use prost::Message;
 use crate::error::ContractError;
 use crate::helpers::query_balance;
 use crate::msg::{ArithmeticTwapToNowRequest, CosmosQuery, ExecuteMsg, InstantiateMsg, InterchainQueryPacketData, QueryMsg, Timestamp};
-use crate::state::{CHANNEL_INFO, CONTRACT_INFO, ContractInfo, StateStatus, TWAP_SETTINGS, update_contract_status};
+use crate::state::{CHANNEL_INFO, CONTRACT_STATE, ContractInfo, StateStatus, TWAP_SETTINGS, update_contract_status};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:muffin";
@@ -22,14 +22,13 @@ pub fn instantiate(
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     let contract_info = ContractInfo {
-        owner_address: msg.creator_address,
-        community_pool_address: msg.community_pool_address,
+        owner_address: msg.owner_address,
         fixed_amount: msg.fixed_amount,
         contract_denom: msg.contract_denom,
         state: StateStatus::Initialized,
     };
 
-    CONTRACT_INFO.save(deps.storage, &contract_info)?;
+    CONTRACT_STATE.save(deps.storage, &contract_info)?;
     TWAP_SETTINGS.save(deps.storage, &msg.twap_request_info)?;
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
@@ -51,7 +50,7 @@ pub fn execute(
 pub fn claim_proposal_amount(mut deps: DepsMut,
                              env: Env,
 ) -> Result<Response, ContractError> {
-    let contract_info = CONTRACT_INFO.load(deps.storage)?;
+    let contract_info = CONTRACT_STATE.load(deps.storage)?;
 
     let contract_balance = query_balance(deps.as_ref(),
                                          env.contract.address.to_string(),
@@ -86,9 +85,9 @@ fn send_twap_icq_query(deps: DepsMut,
     let twap_settings = TWAP_SETTINGS.load(deps.as_ref().storage)?;
 
     let query_twap_request: ArithmeticTwapToNowRequest = ArithmeticTwapToNowRequest {
-        pool_id: twap_settings.pool_id, //16
-        base_asset: twap_settings.base_asset, // factory/osmo109ns4u04l44kqdkvp876hukd3hxz8zzm7809el/uusdc"
-        quote_asset: twap_settings.quote_asset, // uosmo
+        pool_id: twap_settings.pool_id,
+        base_asset: twap_settings.base_asset,
+        quote_asset: twap_settings.quote_asset,
         start_time: Some(timestamp),
     };
 
@@ -135,22 +134,8 @@ fn get_channel_id(deps: Deps) -> StdResult<String> {
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::ContractInfo {} => {
-            let result = CONTRACT_INFO.load(deps.storage)?;
-            to_json_binary(&result)
-        },
-        QueryMsg::OwnerBalance {} => {
-            let contract_info = CONTRACT_INFO.load(deps.storage)?;
-            let owner_balance = query_balance(deps,
-                                              contract_info.owner_address,
-                                              contract_info.contract_denom)?;
-            to_json_binary(&owner_balance)
-        },
-        QueryMsg::CommunityPoolBalance {} => {
-            let contract_info = CONTRACT_INFO.load(deps.storage)?;
-            let community_pool_balance = query_balance(deps,
-                                                       contract_info.community_pool_address,
-                                                       contract_info.contract_denom)?;
-            to_json_binary(&community_pool_balance)
+            let contract_info = CONTRACT_STATE.load(deps.storage)?;
+            to_json_binary(&contract_info)
         }
     }
 }
