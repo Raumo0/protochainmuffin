@@ -1,13 +1,105 @@
-use cosmwasm_std::StdError;
+use std::num::TryFromIntError;
+use std::string::FromUtf8Error;
+use std::time::SystemTimeError;
+use cosmwasm_std::{DivideByZeroError, OverflowError, StdError};
 use thiserror::Error;
 
+/// Never is a placeholder to ensure we don't return any errors
 #[derive(Error, Debug)]
+pub enum Never {}
+
+#[derive(Error, Debug, PartialEq)]
 pub enum ContractError {
     #[error("{0}")]
     Std(#[from] StdError),
 
-    #[error("Unauthorized")]
-    Unauthorized {},
-    // Add any other custom errors you like here.
-    // Look at https://docs.rs/thiserror/1.0.21/thiserror/ for details.
+    #[error("Channel doesn't exist: {id}")]
+    NoSuchChannel { id: String },
+
+    #[error("Didn't send any funds")]
+    NoFunds {},
+
+    #[error("Amount larger than 2**64, not supported by icq-1 packets")]
+    AmountOverflow {},
+
+    #[error("Only supports unordered channel")]
+    OnlyOrderedChannel {},
+
+    #[error("Contract does not have enough tokens to send it to owner")]
+    NoEnoughTokens {},
+
+    #[error("Only accepts tokens that originate on this chain, not native tokens of remote chain")]
+    NoForeignTokens {},
+
+    #[error("Parsed port from denom ({port}) doesn't match packet")]
+    FromOtherPort { port: String },
+
+    #[error("Parsed channel from denom ({channel}) doesn't match packet")]
+    FromOtherChannel { channel: String },
+
+    #[error("Cannot migrate from different contract type: {previous_contract}")]
+    CannotMigrate { previous_contract: String },
+
+    #[error("Cannot migrate from unsupported version: {previous_version}")]
+    CannotMigrateVersion { previous_version: String },
+
+    #[error("Got a submessage reply with unknown id: {id}")]
+    UnknownReplyId { id: u64 },
+
+    #[error("You cannot lower the gas limit for a contract on the allow list")]
+    CannotLowerGas,
+
+    #[error("Only the governance contract can do this")]
+    Unauthorized,
+
+    #[error("You can only send cw20 tokens that have been explicitly allowed by governance")]
+    NotOnAllowList,
+
+    #[error("only unordered channels are supported")]
+    OrderedChannel {},
+
+    #[error("invalid IBC channel version. Got ({actual}), expected ({expected})")]
+    InvalidIbcVersion { actual: String, expected: String },
+
+    #[error("Failed to parse Uint128")]
+    ParseError,
+    #[error("Arithmetic error")]
+    ArithmeticError,
 }
+
+impl From<FromUtf8Error> for ContractError {
+    fn from(_: FromUtf8Error) -> Self {
+        ContractError::Std(StdError::invalid_utf8("parsing denom key"))
+    }
+}
+
+impl From<SystemTimeError> for ContractError {
+    fn from(_: SystemTimeError) -> Self {
+        ContractError::Std(StdError::serialize_err("Start Time", "Creating Start Time"))
+    }
+}
+
+impl From<prost::DecodeError> for ContractError {
+    fn from(_: prost::DecodeError) -> Self {
+        ContractError::Std(StdError::parse_err("ProtoCoin", "parsing Proto response"))
+    }
+}
+
+impl From<TryFromIntError> for ContractError {
+    fn from(_: TryFromIntError) -> Self {
+        ContractError::AmountOverflow {}
+    }
+}
+
+impl From<OverflowError> for ContractError {
+    fn from(_: OverflowError) -> Self {
+        ContractError::ArithmeticError {}
+    }
+}
+
+impl From<DivideByZeroError> for ContractError {
+    fn from(_: DivideByZeroError) -> Self {
+        ContractError::ArithmeticError {}
+    }
+}
+
