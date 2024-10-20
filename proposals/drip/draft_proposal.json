@@ -1,40 +1,43 @@
 {
- "messages": [
-  {
-   "@type": "/cosmos.distribution.v1beta1.MsgCommunityPoolSpend",
-   "authority": "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9kn",
-   "recipient": "cosmos1ngtgxdjxezxjlhhkg2yvnzqephagl0tpvt6h5u2sxyjaqhlx72cqs4wq6r",
-   "amount": [
+  "messages": [
     {
-      "denom": "uatom",
-      "amount": "1000000"
+      "@type": "/cosmos.distribution.v1beta1.MsgCommunityPoolSpend",
+      "authority": "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9kn",
+      "recipient": "cosmos1yywgrtm33gpdu8eukzux3ehn7cdz5pszg3rg974xvy3rzq8dt8hs9tg8jg",
+      "amount": [
+        {
+          "denom": "uatom",
+          "amount": "10000000"
+        }
+      ]
+    },
+    {
+      "@type": "/cosmwasm.wasm.v1.MsgInstantiateContract2",
+      "sender": "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9kn",
+      "admin": "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9kn",
+      "code_id": "4",
+      "label": "icq_test",
+      "msg": {
+        "fixed_amount": {
+          "amount": "1000000",
+          "denom": "uosmo"
+        },
+        "owner_address": "cosmos13l8rj974xwe2kejvmw6ln08fgs880l9rdp6qpm",
+        "contract_denom": "uatom",
+        "twap_request_info": {
+          "pool_id": 308,
+          "base_asset": "uosmo",
+          "quote_asset": "ibc/9FF2B7A5F55038A7EE61F4FD6749D9A648B48E89830F2682B67B5DC158E2753C"
+        }
+      },
+      "funds": [],
+      "salt": "dGVzdC1wcmVkaWN0YWJsZS1jb250cmFjdA==",
+      "fix_msg": false
     }
-   ]
-  },
-  {
-   "@type": "/cosmwasm.wasm.v1.MsgInstantiateContract2",
-   "sender": "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9kn",
-   "admin": "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9kn",
-   "code_id": "1",
-   "label": "utitan",
-   "msg": {
-    "decimals": 6,
-     "initial_balances": [{
-        "address": "cosmos1xjl5yry4dvms4jlst5pplmcfx8n2fztg74jvuw",
-       "amount": "1000000000000000000"
-      }
-     ],
-     "name": "utitan",
-     "symbol": "TITAN"
-   },
-   "funds": [],
-   "salt": "dGVzdC1wcmVkaWN0YWJsZS1jb250cmFjdA==",
-   "fix_msg": false
-  }
- ],
- "metadata": "ipfs://CID",
- "deposit": "100000uatom",
- "title": "DRIP combined proposal",
- "summary": "no summary",
- "expedited": false
+  ],
+  "metadata": "ipfs://CID",
+  "deposit": "100000uatom",
+  "title": "DRIP combined proposal",
+  "summary": "no summary",
+  "expedited": false
 }
